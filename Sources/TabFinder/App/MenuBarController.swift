@@ -6,6 +6,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private let viewModel: TabFinderViewModel
     private let statusItem: NSStatusItem
     private let popover: NSPopover
+    private var openSettingsAction: (() -> Void)?
 
     init(viewModel: TabFinderViewModel) {
         self.viewModel = viewModel
@@ -32,7 +33,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             rootView: PopoverContentView(
                 viewModel: viewModel,
                 close: { [weak self] in self?.hide() },
-                openSafari: { [weak self] in self?.openSafari() }
+                openSafari: { [weak self] in self?.openSafari() },
+                openSettings: { [weak self] in self?.showSettings() }
             )
         )
     }
@@ -51,6 +53,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         popover.performClose(nil)
     }
 
+    func setOpenSettingsAction(_ action: @escaping () -> Void) {
+        openSettingsAction = action
+    }
+
     func popoverDidClose(_ notification: Notification) {}
 
     @objc private func toggleFromStatusItem() {
@@ -63,5 +69,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         ) else { return }
         NSWorkspace.shared.openApplication(at: safariURL, configuration: .init())
         hide()
+    }
+
+    private func showSettings() {
+        hide()
+        openSettingsAction?()
     }
 }

@@ -5,6 +5,7 @@ struct PopoverContentView: View {
     @ObservedObject var viewModel: TabFinderViewModel
     let close: () -> Void
     let openSafari: () -> Void
+    let openSettings: () -> Void
 
     @FocusState private var searchFocused: Bool
 
@@ -61,6 +62,9 @@ struct PopoverContentView: View {
                     .background(.quaternary, in: Capsule())
             }
             Menu {
+                Button("설정…") {
+                    openSettings()
+                }
                 Button("새로고침") {
                     Task { await viewModel.load() }
                 }

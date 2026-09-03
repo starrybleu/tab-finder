@@ -64,6 +64,11 @@ final class TabFinderViewModel: ObservableObject {
         self.selectedTabID = results[nextIndex].id
     }
 
+    func select(_ id: SafariTab.ID) {
+        guard results.contains(where: { $0.id == id }) else { return }
+        selectedTabID = id
+    }
+
     func activateSelected() async -> Bool {
         guard let selectedTabID,
               let selected = results.first(where: { $0.id == selectedTabID })

@@ -2,14 +2,11 @@ import AppKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem?
+    private var menuBarController: MenuBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(
-            systemSymbolName: "rectangle.stack.badge.magnifyingglass",
-            accessibilityDescription: AppMetadata.displayName
-        )
-        statusItem = item
+        let automation = SafariAppleScriptClient()
+        let viewModel = TabFinderViewModel(automation: automation)
+        menuBarController = MenuBarController(viewModel: viewModel)
     }
 }

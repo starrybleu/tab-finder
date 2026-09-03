@@ -53,6 +53,59 @@ final class TabFinderViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.selectedTabID)
     }
 
+    func testChangedTargetReloadsWithoutClearingQuery() async {
+        let selected = tab(id: 4, title: "Fixture tab", url: "https://fixture.example")
+        let automation = SafariAutomationStub(
+            tabs: [selected],
+            activationError: .targetChanged
+        )
+        let viewModel = TabFinderViewModel(automation: automation)
+
+        await viewModel.load()
+        viewModel.query = "fixture"
+        let succeeded = await viewModel.activateSelected()
+        let listCallCount = await automation.listCallCount()
+
+        XCTAssertFalse(succeeded)
+        XCTAssertEqual(viewModel.query, "fixture")
+        XCTAssertEqual(listCallCount, 2)
+        XCTAssertEqual(viewModel.notice, "That tab changed or closed. The list has been refreshed.")
+    }
+
+    func testActivationIsDisabledWhileRefreshing() async {
+        let selected = tab(id: 9, title: "Previous", url: "https://previous.example")
+        let automation = SafariAutomationStub(tabs: [selected])
+        let viewModel = TabFinderViewModel(automation: automation)
+
+        await viewModel.load()
+        await automation.setListDelay(nanoseconds: 100_000_000)
+        let refresh = Task { await viewModel.load() }
+        await Task.yield()
+
+        let succeeded = await viewModel.activateSelected()
+        XCTAssertEqual(viewModel.state, .loading)
+        XCTAssertFalse(succeeded)
+        XCTAssertTrue(viewModel.results.isEmpty)
+
+        await refresh.value
+    }
+
+    func testChangedTargetDoesNotClaimRefreshWhenReloadFails() async {
+        let selected = tab(id: 5, title: "Fixture", url: "https://fixture.example")
+        let automation = SafariAutomationStub(
+            tabs: [selected],
+            activationError: .targetChanged,
+            listErrorsByCall: [2: .permissionDenied]
+        )
+        let viewModel = TabFinderViewModel(automation: automation)
+
+        await viewModel.load()
+        _ = await viewModel.activateSelected()
+
+        XCTAssertEqual(viewModel.state, .permissionDenied)
+        XCTAssertNil(viewModel.notice)
+    }
+
     private func tab(id: Int, title: String, url: String) -> SafariTab {
         SafariTab(
             windowID: 1,
@@ -69,23 +122,48 @@ final class TabFinderViewModelTests: XCTestCase {
 private actor SafariAutomationStub: SafariAutomating {
     private let tabs: [SafariTab]
     private let listError: SafariAutomationError?
+    private let activationError: SafariAutomationError?
     private var activated: [SafariTab] = []
+    private var listCalls = 0
+    private var listDelayNanoseconds: UInt64 = 0
+    private let listErrorsByCall: [Int: SafariAutomationError]
 
-    init(tabs: [SafariTab], listError: SafariAutomationError? = nil) {
+    init(
+        tabs: [SafariTab],
+        listError: SafariAutomationError? = nil,
+        activationError: SafariAutomationError? = nil,
+        listErrorsByCall: [Int: SafariAutomationError] = [:]
+    ) {
         self.tabs = tabs
         self.listError = listError
+        self.activationError = activationError
+        self.listErrorsByCall = listErrorsByCall
     }
 
     func listTabs() async throws -> [SafariTab] {
+        listCalls += 1
+        if listDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: listDelayNanoseconds)
+        }
+        if let error = listErrorsByCall[listCalls] { throw error }
         if let listError { throw listError }
         return tabs
     }
 
     func activate(_ target: SafariTab) async throws {
+        if let activationError { throw activationError }
         activated.append(target)
     }
 
     func activatedTabs() -> [SafariTab] {
         activated
+    }
+
+    func listCallCount() -> Int {
+        listCalls
+    }
+
+    func setListDelay(nanoseconds: UInt64) {
+        listDelayNanoseconds = nanoseconds
     }
 }

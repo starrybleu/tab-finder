@@ -32,15 +32,7 @@ actor SafariAppleScriptClient: SafariAutomating {
             throw SafariAutomationError.targetChanged
         }
 
-        let source = """
-            tell application id "com.apple.Safari"
-              set targetWindow to first window whose id is \(resolved.windowID)
-              set current tab of targetWindow to tab \(resolved.tabIndex) of targetWindow
-              set index of targetWindow to 1
-              activate
-            end tell
-            """
-        _ = try execute(source)
+        _ = try execute(SafariActivationScript.source(for: resolved), targetSensitive: true)
     }
 
     private func ensureSafariIsRunning() throws {
@@ -51,7 +43,10 @@ actor SafariAppleScriptClient: SafariAutomating {
         }
     }
 
-    private func execute(_ source: String) throws -> NSAppleEventDescriptor {
+    private func execute(
+        _ source: String,
+        targetSensitive: Bool = false
+    ) throws -> NSAppleEventDescriptor {
         guard let script = NSAppleScript(source: source) else {
             throw SafariAutomationError.scriptFailure(number: 0, message: "AppleScript를 만들 수 없습니다.")
         }
@@ -60,11 +55,12 @@ actor SafariAppleScriptClient: SafariAutomating {
         let result = script.executeAndReturnError(&errorInfo)
         if errorInfo != nil {
             let number = (errorInfo?[NSAppleScript.errorNumber] as? NSNumber)?.intValue ?? 0
-            if number == -1743 {
-                throw SafariAutomationError.permissionDenied
-            }
             let message = (errorInfo?[NSAppleScript.errorMessage] as? String) ?? "알 수 없는 AppleScript 오류"
-            throw SafariAutomationError.scriptFailure(number: number, message: message)
+            throw SafariAppleScriptErrorMapper.map(
+                number: number,
+                message: message,
+                targetSensitive: targetSensitive
+            )
         }
         return result
     }

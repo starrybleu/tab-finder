@@ -18,6 +18,13 @@ struct PopoverContentView: View {
                 .focused($searchFocused)
                 .accessibilityLabel("탭 검색")
 
+            if let notice = viewModel.notice {
+                Label(notice, systemImage: "arrow.clockwise")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             resultContent
         }
         .padding(14)
@@ -90,7 +97,7 @@ struct PopoverContentView: View {
         case .safariNotRunning:
             SearchStatusView(
                 icon: "safari",
-                title: "Safari가 열려 있지 않습니다",
+                title: "Safari is not open.",
                 message: "Safari를 연 다음 다시 검색해 주세요.",
                 buttonTitle: "Safari 열기",
                 action: openSafari
@@ -99,7 +106,7 @@ struct PopoverContentView: View {
             SearchStatusView(
                 icon: "lock.shield",
                 title: "Safari 접근 권한이 필요합니다",
-                message: "시스템 설정의 개인정보 보호 및 보안 > 자동화에서 Tab Finder의 Safari 접근을 허용해 주세요.",
+                message: "Allow Tab Finder to control Safari in System Settings > Privacy & Security > Automation.",
                 buttonTitle: "다시 시도",
                 action: reload
             )
@@ -115,7 +122,7 @@ struct PopoverContentView: View {
             if viewModel.results.isEmpty {
                 SearchStatusView(
                     icon: viewModel.query.isEmpty ? "rectangle.stack" : "magnifyingglass",
-                    title: viewModel.query.isEmpty ? "열린 탭이 없습니다" : "검색 결과가 없습니다",
+                    title: viewModel.query.isEmpty ? "No open Safari tabs." : "No matching tabs.",
                     message: viewModel.query.isEmpty
                         ? "Safari에서 탭을 연 뒤 새로고침해 주세요."
                         : "다른 제목이나 URL을 입력해 보세요."

@@ -31,8 +31,8 @@ struct SettingsView: View {
                 Toggle("로그인 시 Tab Finder 열기", isOn: launchAtLoginBinding)
             }
 
-            if let errorMessage {
-                Text(errorMessage)
+            if let visibleError = errorMessage ?? store.runtimeShortcutError {
+                Text(visibleError)
                     .font(.caption)
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
@@ -55,6 +55,7 @@ struct SettingsView: View {
                     }
                     store.shortcutEnabled = enabled
                     errorMessage = nil
+                    store.runtimeShortcutError = nil
                 } catch {
                     errorMessage = shortcutErrorMessage(error)
                 }
@@ -84,6 +85,7 @@ struct SettingsView: View {
             }
             store.shortcut = shortcut
             errorMessage = nil
+            store.runtimeShortcutError = nil
         } catch {
             errorMessage = shortcutErrorMessage(error)
         }
@@ -92,6 +94,9 @@ struct SettingsView: View {
     private func shortcutErrorMessage(_ error: Error) -> String {
         if case let GlobalShortcutError.registrationFailed(status) = error {
             return "이 단축키를 등록할 수 없습니다 (오류 \(status)). 다른 조합을 사용해 주세요."
+        }
+        if case GlobalShortcutError.rollbackFailed = error {
+            return "이전 단축키도 다시 등록하지 못했습니다. 다른 조합을 선택해 주세요."
         }
         return "단축키를 변경하지 못했습니다: \(error.localizedDescription)"
     }

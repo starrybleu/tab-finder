@@ -22,9 +22,16 @@ final class GlobalShortcutManager {
             activeShortcut = shortcut
         } catch {
             if let previous {
-                try? registrar.register(previous, action: action)
+                do {
+                    try registrar.register(previous, action: action)
+                    activeShortcut = previous
+                } catch {
+                    activeShortcut = nil
+                    throw GlobalShortcutError.rollbackFailed
+                }
+            } else {
+                activeShortcut = nil
             }
-            activeShortcut = previous
             throw error
         }
     }

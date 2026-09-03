@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import OSLog
 
 @MainActor
 final class TabFinderViewModel: ObservableObject {
@@ -19,10 +20,15 @@ final class TabFinderViewModel: ObservableObject {
     @Published private(set) var results: [SafariTab] = []
     @Published private(set) var selectedTabID: SafariTab.ID?
     @Published private(set) var state: State = .idle
+    @Published private(set) var notice: String?
 
     private let automation: any SafariAutomating
     private let searchEngine: TabSearchEngine
     private var snapshot: [SafariTab] = []
+    private let logger = Logger(
+        subsystem: AppMetadata.bundleIdentifier,
+        category: "automation"
+    )
 
     init(
         automation: any SafariAutomating,
@@ -33,12 +39,16 @@ final class TabFinderViewModel: ObservableObject {
     }
 
     func load() async {
+        notice = nil
         state = .loading
+        results = []
+        selectedTabID = nil
         do {
             snapshot = try await automation.listTabs()
             state = .loaded
             applySearch()
         } catch {
+            log(error)
             snapshot = []
             results = []
             selectedTabID = nil
@@ -70,7 +80,8 @@ final class TabFinderViewModel: ObservableObject {
     }
 
     func activateSelected() async -> Bool {
-        guard let selectedTabID,
+        guard state == .loaded,
+              let selectedTabID,
               let selected = results.first(where: { $0.id == selectedTabID })
         else {
             return false
@@ -81,8 +92,12 @@ final class TabFinderViewModel: ObservableObject {
             return true
         } catch SafariAutomationError.targetChanged {
             await load()
+            if state == .loaded {
+                notice = "That tab changed or closed. The list has been refreshed."
+            }
             return false
         } catch {
+            log(error)
             state = Self.state(for: error)
             return false
         }
@@ -113,6 +128,23 @@ final class TabFinderViewModel: ObservableObject {
             return .failed("Safari의 탭 정보를 읽을 수 없습니다.")
         case nil:
             return .failed(error.localizedDescription)
+        }
+    }
+
+    private func log(_ error: Error) {
+        switch error as? SafariAutomationError {
+        case .safariNotRunning:
+            logger.notice("Safari automation state: safariNotRunning")
+        case .permissionDenied:
+            logger.notice("Safari automation state: permissionDenied")
+        case .targetChanged:
+            logger.notice("Safari automation state: targetChanged")
+        case .malformedResponse:
+            logger.error("Safari automation state: malformedResponse")
+        case let .scriptFailure(number, _):
+            logger.error("Safari automation state: scriptFailure code=\(number)")
+        case nil:
+            logger.error("Safari automation state: unknownFailure")
         }
     }
 }

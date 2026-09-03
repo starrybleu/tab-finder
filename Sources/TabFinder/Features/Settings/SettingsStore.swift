@@ -3,6 +3,8 @@ import Foundation
 
 @MainActor
 final class SettingsStore: ObservableObject {
+    @Published var runtimeShortcutError: String?
+
     @Published var shortcut: KeyboardShortcut {
         didSet { saveShortcut() }
     }
@@ -19,6 +21,7 @@ final class SettingsStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        runtimeShortcutError = nil
 
         if let data = defaults.data(forKey: Keys.shortcut),
            let stored = try? JSONDecoder().decode(KeyboardShortcut.self, from: data)

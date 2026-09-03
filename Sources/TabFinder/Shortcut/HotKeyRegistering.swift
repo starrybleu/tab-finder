@@ -11,4 +11,5 @@ protocol HotKeyRegistering: AnyObject {
 
 enum GlobalShortcutError: Error, Equatable {
     case registrationFailed(OSStatus)
+    case rollbackFailed
 }

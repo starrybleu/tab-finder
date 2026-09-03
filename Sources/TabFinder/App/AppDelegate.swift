@@ -31,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 try shortcutManager.apply(store.shortcut)
             } catch {
-                store.shortcutEnabled = false
+                store.runtimeShortcutError = "저장된 전역 단축키를 등록하지 못했습니다. 설정에서 다른 조합을 선택해 주세요."
             }
         }
 

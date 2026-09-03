@@ -12,18 +12,20 @@ struct SafariTabDescriptorDecoder {
         for rowIndex in 1...descriptor.numberOfItems {
             guard let row = descriptor.atIndex(rowIndex),
                   row.descriptorType == typeAEList,
-                  row.numberOfItems == 6,
-                  let windowID = integer(at: 1, in: row),
+                  row.numberOfItems == 6
+            else {
+                continue
+            }
+            guard let windowID = integer(at: 1, in: row),
                   let tabIndex = integer(at: 2, in: row),
                   let windowOrder = integer(at: 3, in: row),
-                  let title = row.atIndex(4)?.stringValue,
-                  let urlString = row.atIndex(5)?.stringValue,
                   let currentTabIndex = integer(at: 6, in: row)
             else {
-                throw SafariAutomationError.malformedResponse
+                continue
             }
 
-            guard !urlString.isEmpty else { continue }
+            guard let urlString = row.atIndex(5)?.stringValue, !urlString.isEmpty else { continue }
+            let title = row.atIndex(4)?.stringValue ?? ""
             tabs.append(
                 SafariTab(
                     windowID: windowID,

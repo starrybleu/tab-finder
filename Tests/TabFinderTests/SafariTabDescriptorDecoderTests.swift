@@ -34,6 +34,22 @@ final class SafariTabDescriptorDecoderTests: XCTestCase {
         XCTAssertEqual(try SafariTabDescriptorDecoder.decode(descriptor).first?.title, "https://example.com")
     }
 
+    func testMalformedRowIsSkippedWithoutDiscardingValidRows() throws {
+        let malformed = list([NSAppleEventDescriptor(string: "incomplete")])
+        let valid = row(
+            windowID: 3,
+            tabIndex: 2,
+            windowOrder: 1,
+            title: "Valid",
+            url: "https://valid.example",
+            currentTabIndex: 2
+        )
+
+        let tabs = try SafariTabDescriptorDecoder.decode(list([malformed, valid]))
+
+        XCTAssertEqual(tabs.map(\.title), ["Valid"])
+    }
+
     func testEmptyListDecodesToEmptyArray() throws {
         XCTAssertEqual(try SafariTabDescriptorDecoder.decode(NSAppleEventDescriptor.list()), [])
     }

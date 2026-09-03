@@ -23,11 +23,13 @@ final class SettingsStoreTests: XCTestCase {
         first.shortcut = custom
         first.shortcutEnabled = false
         first.launchAtLogin = true
+        first.runtimeShortcutError = "temporary conflict"
 
         let second = SettingsStore(defaults: defaults)
         XCTAssertEqual(second.shortcut, custom)
         XCTAssertFalse(second.shortcutEnabled)
         XCTAssertTrue(second.launchAtLogin)
+        XCTAssertNil(second.runtimeShortcutError)
     }
 
     private func makeDefaults() -> (UserDefaults, String) {

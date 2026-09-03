@@ -11,6 +11,7 @@ enum TabFinderApp {
         let delegate = AppDelegate()
         retainedDelegate = delegate
         application.delegate = delegate
+        application.mainMenu = ApplicationMenuFactory.make()
         application.setActivationPolicy(.accessory)
         application.run()
     }
